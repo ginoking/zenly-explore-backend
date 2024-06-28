@@ -1,0 +1,32 @@
+version: '3'
+networks:
+  myNetwork:
+    driver: bridge
+services:
+    
+  backend:
+    container_name: 'zenly-explore-backend'
+    build: .
+    restart: always
+    ports: 
+      - 70:80
+    depends_on:
+      - db
+    networks:
+      - myNetwork
+    environment:
+      mongoDBUrI: mongodb://db:27017
+    volumes:
+      - .:/code/app
+  db:
+    image: 'mongo'
+    container_name: 'zenly-explore-db'
+    ports:
+      - 27017:27017
+    # environment:
+    #   MONGO_INITDB_ROOT_USERNAME: rootuser
+    #   MONGO_INITDB_ROOT_PASSWORD: rootpass
+    networks:
+      - myNetwork
+    volumes:
+      - ./tmp/data/db:/data/db
