@@ -1,7 +1,7 @@
 import os
 import motor.motor_asyncio
-
 from app.models.position import PositionSchema
+from pydantic_extra_types.coordinate import Latitude, Longitude
 
 MONGO_DETAILS = os.environ.get("mongoDBUrI")
 
@@ -13,6 +13,7 @@ position_collection = database.get_collection("positions")
 
 def position_helper(position) -> dict:
     return {
+        # "id": str(position["_id"]),
         "longitude": position["longitude"],
         "latitude": position["latitude"],
         "timestamp": position["timestamp"],
@@ -28,19 +29,30 @@ def position_helper(position) -> dict:
     }
 
 async def add_position(position_data: PositionSchema) -> dict:
+    exists = await get_position_by_latlng(position_data.get('latitude'), position_data.get('longitude'))
+    if exists is not None: 
+        return exists
     position = await position_collection.insert_one(position_data)
-    # return position.inserted_id
-    new_position = await position_collection.find_one({"_id": position.inserted_id}, {'_id', 0})
-    # print(new_position)
-    # if new_position: 
-    #     return True
-    # else: 
-    #     return False
+
+    new_position = await position_collection.find_one({"_id": position.inserted_id})
+
     return new_position
-    # return position_helper(new_position)
+
 
 async def get_all_positions() -> list:
     positions = []
     async for position in position_collection.find():
         positions.append(position_helper(position))
     return positions
+
+async def get_positions_by_id(id) -> dict:
+    return await position_collection.find_one({"_id": id}, {'_id': 0})
+
+async def get_position_by_latlng(lat: float, lng: float) -> dict:
+    return await position_collection.find_one(
+        {
+            "longitude": lng,
+            "latitude": lat
+        }, 
+        {'_id': 0}
+    )
